@@ -3,6 +3,7 @@ package monzo
 import (
 	"net/url"
 	"strconv"
+	"time"
 )
 
 type Pagination struct {
@@ -31,4 +32,22 @@ func (p Pagination) Values(vals ...url.Values) url.Values {
 	}
 
 	return v
+}
+
+func (p Pagination) SinceTime() time.Time {
+	if p.Since == "" {
+		return time.Time{}
+	}
+
+	t, _ := time.Parse(time.RFC3339Nano, p.Since)
+	return t
+}
+
+func (p Pagination) BeforeTime() time.Time {
+	if p.Before == "" {
+		return time.Now()
+	}
+
+	t, _ := time.Parse(time.RFC3339Nano, p.Before)
+	return t
 }

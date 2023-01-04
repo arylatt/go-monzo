@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -21,7 +19,7 @@ import (
 
 var (
 	login = &cobra.Command{
-		Use:     "login",
+		Use:     "login --token | --client-id --client-secret",
 		Short:   "Authenticate to the Monzo API",
 		GroupID: "auth",
 		PreRunE: loginPreRunE,
@@ -36,6 +34,13 @@ var (
 		RunE:    refreshTokenRunE,
 	}
 
+	logout = &cobra.Command{
+		Use:     "logout",
+		Short:   "Delete all cached data",
+		GroupID: "auth",
+		RunE:    logoutRunE,
+	}
+
 	ErrLoginAuthTypesMutuallyExclusive = errors.New("cannot use --token with --client-id and --client-secret")
 
 	ErrLoginAuthTypesOAuth2MissingPart = errors.New("--client-id and --client-secret must both be provided for oauth2")
@@ -44,16 +49,14 @@ var (
 )
 
 func init() {
-	login.Flags().StringP("token", "t", "", "Authenticate with static access token")
-	login.Flags().StringP("client-id", "c", "", "Authenticate with Client ID")
-	login.Flags().StringP("client-secret", "s", "", "Authenticate with Client Secret")
-
-	viper.BindPFlags(login.Flags())
+	login.Flags().AddFlagSet(FlagSets["login"])
 
 	root.AddGroup(&cobra.Group{ID: "auth", Title: "Auth"})
 	root.AddCommand(login)
 
 	root.AddCommand(refreshToken)
+
+	root.AddCommand(logout)
 }
 
 func loginPreRunE(cmd *cobra.Command, args []string) error {
@@ -109,30 +112,7 @@ type Token struct {
 }
 
 func (t *Token) Save() error {
-	filePath := path.Join(viper.GetString("home-dir"), "token.json")
-
-	data, err := json.Marshal(t)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filePath, data, 0700)
-}
-
-func LoadToken() (*Token, error) {
-	filePath := path.Join(viper.GetString("home-dir"), "token.json")
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	defer file.Close()
-
-	t := &Token{}
-	err = json.NewDecoder(file).Decode(t)
-
-	return t, err
+	return SaveCache(CacheFileToken, t)
 }
 
 func LoginOAuth2(ctx context.Context, clientID, clientSecret string) (t *Token, err error) {
@@ -225,7 +205,8 @@ func CallbackHandler(ctx context.Context, state string, tokenChan chan *Token, c
 }
 
 func refreshTokenPreRunE(cmd *cobra.Command, args []string) (err error) {
-	token, err := LoadToken()
+	token := &Token{}
+	err = LoadCache(CacheFileToken, token)
 	if err != nil {
 		return
 	}
@@ -238,7 +219,8 @@ func refreshTokenPreRunE(cmd *cobra.Command, args []string) (err error) {
 }
 
 func refreshTokenRunE(cmd *cobra.Command, args []string) (err error) {
-	token, _ := LoadToken()
+	token := &Token{}
+	LoadCache(CacheFileToken, token)
 
 	err = _client.RefreshToken()
 	if err != nil {
@@ -253,4 +235,8 @@ func refreshTokenRunE(cmd *cobra.Command, args []string) (err error) {
 	fmt.Fprintf(cmd.OutOrStdout(), "Token refreshed, new expiry: %s", token.Expiry.String())
 
 	return token.Save()
+}
+
+func logoutRunE(cmd *cobra.Command, args []string) error {
+	return os.RemoveAll(viper.GetString("home-dir"))
 }

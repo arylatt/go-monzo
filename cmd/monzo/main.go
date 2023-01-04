@@ -50,11 +50,12 @@ func rootPersistentPreRunE(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	if cmd.Name() == "login" || cmd == cmd.Root() {
+	if cmd.Name() == "login" || cmd.Name() == "logout" || cmd == cmd.Root() {
 		return
 	}
 
-	token, err := LoadToken()
+	token := &Token{}
+	err = LoadCache(CacheFileToken, token)
 	if err != nil {
 		return fmt.Errorf("not authenticated, try running monzo login - %w", err)
 	}
@@ -69,7 +70,8 @@ func rootPersistentPostRunE(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	token, _ := LoadToken()
+	token := &Token{}
+	LoadCache(CacheFileToken, token)
 
 	token.Token, err = _client.Token()
 	if err != nil {

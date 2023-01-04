@@ -5,6 +5,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Help",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/monzo",
+      "args": [ "-h" ],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
       "name": "Login",
       "type": "go",
       "request": "launch",
@@ -23,12 +32,39 @@
       "envFile": "${workspaceFolder}/.env"
     },
     {
+      "name": "Logout",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/monzo",
+      "args": [ "logout" ],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
       "name": "whoami",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/monzo",
       "args": [ "whoami" ],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "List Accounts",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/monzo",
+      "args": [ "accounts" ],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Show Balance",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/monzo",
+      "args": [ "balance" ],
       "envFile": "${workspaceFolder}/.env"
     },
     {
@@ -41,13 +77,29 @@
       "envFile": "${workspaceFolder}/.env"
     },
     {
-      "name": "Get Transaction fake",
+      "name": "Get Transaction ${input:transactionID}",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/monzo",
-      "args": [ "transactions", "get", "fake" ],
+      "args": [ "transactions", "get", "${input:transactionID}" ],
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Annotate Transaction ${input:transactionID}",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/monzo",
+      "args": [ "transactions", "annotate", "${input:transactionID}", "hello=world", "complex=aren't I?" ],
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "transactionID",
+      "description": "Transaction ID to test with"
     }
   ]
 }

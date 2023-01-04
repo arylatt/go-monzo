@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 )
 
 type TransactionsService service
@@ -79,6 +80,16 @@ type Transaction struct {
 	UserID                               string            `json:"user_id"`
 
 	client *Client
+}
+
+func (t Transaction) CreatedTime() time.Time {
+	tme, _ := time.Parse(time.RFC3339Nano, t.Created)
+	return tme
+}
+
+func (t Transaction) UpdatedTime() time.Time {
+	tme, _ := time.Parse(time.RFC3339Nano, t.Updated)
+	return tme
 }
 
 type TransactionList struct {

@@ -8,9 +8,10 @@ import (
 )
 
 var whoami = &cobra.Command{
-	Use:   "whoami",
-	Short: "Check auth status",
-	RunE:  whoamiRunE,
+	Use:     "whoami",
+	Short:   "Check auth status",
+	GroupID: "auth",
+	RunE:    whoamiRunE,
 }
 
 func init() {
