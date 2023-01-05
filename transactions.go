@@ -7,12 +7,17 @@ import (
 	"time"
 )
 
+// Transactions are movements of funds into or out of an account.
+// Negative transactions represent debits (ie. spending money) and positive transactions represent credits (ie. receiving money).
 type TransactionsService service
 
 var (
+	// ErrTransactionClientNil is returned if Transaction object has a nil client configured
+	// (e.g. if the Transaction object was manually created).
 	ErrTransactionClientNil = errors.New("transaction client is not configured, use transactions client instead")
 )
 
+// MerchantAddress represents the inner merchant address data provided by the Monzo API.
 type MerchantAddress struct {
 	ShortFormatted string  `json:"short_formatted"`
 	City           string  `json:"city"`
@@ -27,6 +32,7 @@ type MerchantAddress struct {
 	Postcode       string  `json:"postcode"`
 }
 
+// MerchantAddress represents the inner merchant data provided by the Monzo API.
 type Merchant struct {
 	ID              string            `json:"id"`
 	GroupID         string            `json:"group_id"`
@@ -43,6 +49,7 @@ type Merchant struct {
 	Metadata        map[string]string `json:"metadata"`
 }
 
+// Transaction represents a transaction provided by the Monzo API.
 type Transaction struct {
 	AccountID                            string            `json:"account_id"`
 	Amount                               int64             `json:"amount"`
@@ -82,20 +89,24 @@ type Transaction struct {
 	client *Client
 }
 
+// CreatedTime converts the RFC3339 string time into a Time object.
 func (t Transaction) CreatedTime() time.Time {
 	tme, _ := time.Parse(time.RFC3339Nano, t.Created)
 	return tme
 }
 
+// UpdatedTime converts the RFC3339 string time into a Time object.
 func (t Transaction) UpdatedTime() time.Time {
 	tme, _ := time.Parse(time.RFC3339Nano, t.Updated)
 	return tme
 }
 
+// TransactionList represents the response from the Monzo API for a list of transactions.
 type TransactionList struct {
 	Transactions []Transaction `json:"transactions"`
 }
 
+// setClient is an internal helper to ensure all transactions have the client attached to them for later usage.
 func (t *TransactionList) setClient(c *Client) {
 	if t == nil {
 		return
@@ -111,10 +122,12 @@ func (t *TransactionList) setClient(c *Client) {
 	t.Transactions = updatedTransactions
 }
 
+// TransactionSingle represents the response from the Monzo API for a single transaction.
 type TransactionSingle struct {
 	Transaction Transaction `json:"transaction"`
 }
 
+// setClient is an internal helper to ensure the single transaction has the client attached to it for later usage.
 func (t *TransactionSingle) setClient(c *Client) {
 	if t == nil {
 		return
@@ -123,22 +136,26 @@ func (t *TransactionSingle) setClient(c *Client) {
 	t.Transaction.client = c
 }
 
+// transactionStringMerchant represents a transaction provided by the Monzo API with non-expanded merchant data.
 type transactionStringMerchant struct {
 	Transaction
 
 	Merchant string `json:"merchant"`
 }
 
+// Expand converts a transaction provided by the Monzo API with non-expanded merchant data to the regular Transaction type.
 func (t transactionStringMerchant) Expand() *Transaction {
 	t.Transaction.Merchant.ID = t.Merchant
 
 	return &t.Transaction
 }
 
+// transactionStringMerchantList represents the response from the Monzo API for a list of transactions with non-expanded merchant data.
 type transactionStringMerchantList struct {
 	Transactions []transactionStringMerchant `json:"transactions"`
 }
 
+// Expand converts a list of transactions provided by the Monzo API with non-expanded merchant data to the regular Transaction type.
 func (t transactionStringMerchantList) Expand() *TransactionList {
 	tl := &TransactionList{}
 
@@ -149,16 +166,25 @@ func (t transactionStringMerchantList) Expand() *TransactionList {
 	return tl
 }
 
+// transactionStringMerchantSingle represents the response from the Monzo API for a single transaction with non-expanded merchant data.
 type transactionStringMerchantSingle struct {
 	Transaction transactionStringMerchant `json:"transaction"`
 }
 
+// Expand converts a single transaction provided by the Monzo API with non-expanded merchant data to the regular Transaction type.
 func (t transactionStringMerchantSingle) Expand() *TransactionSingle {
 	t.Transaction.Transaction.Merchant.ID = t.Transaction.Merchant
 
 	return &TransactionSingle{Transaction: t.Transaction.Transaction}
 }
 
+// Returns a list of transactions on the user's account.
+//
+// IMPORTANT - Strong Customer Authentication:
+// After a user has authenticated, your client can fetch all of their transactions, and after 5 minutes, it can only sync the last 90 days of transactions.
+// If you need the user’s entire transaction history, you should consider fetching and storing it right after authentication.
+//
+// Transactions within the last 90 days can be accessed using the paging argument.
 func (s *TransactionsService) List(accountID string, expandMerchant bool, paging *Pagination) (list *TransactionList, err error) {
 	var out any
 
@@ -194,6 +220,7 @@ func (s *TransactionsService) List(accountID string, expandMerchant bool, paging
 	return
 }
 
+// Returns an individual transaction, fetched by its id.
 func (s *TransactionsService) Get(transactionID string, expandMerchant bool) (tx *TransactionSingle, err error) {
 	var out any
 
@@ -222,6 +249,9 @@ func (s *TransactionsService) Get(transactionID string, expandMerchant bool) (tx
 	return
 }
 
+// You may store your own key-value annotations against a transaction in its metadata.
+//
+// Note: the Monzo API does not seem to be respecting these requests.
 func (s *TransactionsService) Annotate(transactionID string, metadata map[string]string) (tx *TransactionSingle, err error) {
 	u := fmt.Sprintf("/transactions/%s", transactionID)
 	body := url.Values{}
@@ -241,6 +271,11 @@ func (s *TransactionsService) Annotate(transactionID string, metadata map[string
 	return
 }
 
+// You may store your own key-value annotations against a transaction in its metadata.
+//
+// Note: the Monzo API does not seem to be respecting these requests.
+//
+// Transaction.Annotate is a convenience method. It is the same as calling Transactions.Annotate(transaction.ID, metadata).
 func (t *Transaction) Annotate(metadata map[string]string) (*TransactionSingle, error) {
 	if t.client == nil {
 		return nil, ErrTransactionClientNil

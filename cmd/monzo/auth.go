@@ -173,7 +173,7 @@ func LoginOAuth2(ctx context.Context, clientID, clientSecret string) (t *Token, 
 	return
 }
 
-func CallbackHandler(ctx context.Context, state string, tokenChan chan *Token, config *oauth2.Config) func(rw http.ResponseWriter, r *http.Request) {
+func CallbackHandler(ctx context.Context, state string, tokenChan chan *Token, config *oauth2.Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		code, reqState := r.URL.Query().Get("code"), r.URL.Query().Get("state")
 		if code == "" || reqState == "" {

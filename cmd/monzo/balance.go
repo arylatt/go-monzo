@@ -11,7 +11,7 @@ import (
 var (
 	balance = &cobra.Command{
 		Use:     "balance --account-id",
-		Short:   "Show balance",
+		Short:   "Returns balance information for a specific account.",
 		GroupID: "balance",
 		RunE:    balanceRunE,
 	}

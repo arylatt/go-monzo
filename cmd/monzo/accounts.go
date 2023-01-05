@@ -18,7 +18,7 @@ var (
 
 	accounts = &cobra.Command{
 		Use:       "accounts [account-type]",
-		Short:     "List accounts",
+		Short:     "Returns a list of accounts owned by the currently authorised user.",
 		GroupID:   "accounts",
 		PreRunE:   accountsPreRunE,
 		RunE:      accountsRunE,

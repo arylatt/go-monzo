@@ -15,11 +15,22 @@ import (
 )
 
 const (
-	Version          = "dev"
+	// Version is the SemVer of the Monzo API client.
+	Version = "dev"
+
+	// DefaultUserAgent is the user-agent string that will be sent to the server, unless it is overridden on the Client.
 	DefaultUserAgent = "go-monzo/" + Version + " (https://github.com/arylatt/go-monzo)"
-	BaseURL          = "https://api.monzo.com"
+
+	// BaseURL is the default Monzo API URL.
+	BaseURL = "https://api.monzo.com"
 )
 
+// Client is the Monzo API client.
+//
+// Client contains modifiable fields: BaseURL for changing where requests are sent, and UserAgent for changing the user-agent string sent to the server.
+//
+// The various API endpoints are accessed through the different Service fields (e.g. Accounts, Balance, Pots, etc...),
+// based on the Monzo API Reference - https://docs.monzo.com/.
 type Client struct {
 	client *http.Client
 
@@ -38,10 +49,14 @@ type Client struct {
 	Webhooks     *WebhooksService
 }
 
+// Internal struct to provide the different API services with the common client.
 type service struct {
 	client *Client
 }
 
+// New creates a new Monzo API client based on the parent HTTP client.
+//
+// The parent HTTP client should contain a transport capable of authorizing requests, either via static access token, or OAuth2.
 func New(client *http.Client) (c *Client) {
 	baseURL, _ := url.Parse(BaseURL)
 
@@ -65,6 +80,7 @@ func New(client *http.Client) (c *Client) {
 	return
 }
 
+// Do sends a request to the server and attempts to parse the response data for a Monzo API error.
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
 	parsedResp := CheckResponse(resp)
@@ -76,7 +92,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-func encodeBody(body interface{}) (io.Reader, string, error) {
+// Internal helper to encode request body data and provide the appropriate content type string.
+func encodeBody(body any) (io.Reader, string, error) {
 	if body == nil {
 		return nil, "", nil
 	}
@@ -94,11 +111,15 @@ func encodeBody(body interface{}) (io.Reader, string, error) {
 	}
 }
 
-func (c *Client) NewRequest(method, url string, body interface{}) (*http.Request, error) {
+// NewRequest creates a new HTTP request to be sent to the Monzo API with a background context.
+func (c *Client) NewRequest(method, url string, body any) (*http.Request, error) {
 	return c.NewRequestWithContext(context.Background(), method, url, body)
 }
 
-func (c *Client) NewRequestWithContext(ctx context.Context, method, urlStr string, body interface{}) (req *http.Request, err error) {
+// NewRequestWithContext creates a new HTTP request to be sent to the Monzo API with the provided context.
+//
+// The request body is encoded and attached to the request, as well as the appropriate user-agent, content type, and accept request headers.
+func (c *Client) NewRequestWithContext(ctx context.Context, method, urlStr string, body any) (req *http.Request, err error) {
 	bodyBuf, contentType, err := encodeBody(body)
 	if err != nil {
 		return
@@ -127,6 +148,7 @@ func (c *Client) NewRequestWithContext(ctx context.Context, method, urlStr strin
 	return
 }
 
+// Internal helper to call NewRequest and Do and return the results.
 func (c *Client) doQuick(method, url string, body any) (resp *http.Response, err error) {
 	req, err := c.NewRequest(method, url, body)
 	if err != nil {
@@ -136,32 +158,38 @@ func (c *Client) doQuick(method, url string, body any) (resp *http.Response, err
 	return c.Do(req)
 }
 
-// Post sends a HTTP POST request
-func (c *Client) Post(url string, body interface{}) (resp *http.Response, err error) {
+// Post sends a HTTP POST request.
+func (c *Client) Post(url string, body any) (resp *http.Response, err error) {
 	return c.doQuick(http.MethodPost, url, body)
 }
 
-// Put sends a HTTP PUT request
-func (c *Client) Put(url string, body interface{}) (resp *http.Response, err error) {
+// Put sends a HTTP PUT request.
+func (c *Client) Put(url string, body any) (resp *http.Response, err error) {
 	return c.doQuick(http.MethodPut, url, body)
 }
 
-// Patch sends a HTTP PATCH request
-func (c *Client) Patch(url string, body interface{}) (resp *http.Response, err error) {
+// Patch sends a HTTP PATCH request.
+func (c *Client) Patch(url string, body any) (resp *http.Response, err error) {
 	return c.doQuick(http.MethodPatch, url, body)
 }
 
-// Get sends a HTTP Get request
-func (c *Client) Get(url string, body interface{}) (resp *http.Response, err error) {
+// Get sends a HTTP GET request.
+func (c *Client) Get(url string, body any) (resp *http.Response, err error) {
 	return c.doQuick(http.MethodGet, url, body)
 }
 
-// LogOut revokes the access and refresh token. A new OAuth2Client will need to be created
+// Delete sends a HTTP DELETE request.
+func (c *Client) Delete(url string) (resp *http.Response, err error) {
+	return c.doQuick(http.MethodDelete, url, nil)
+}
+
+// LogOut revokes the access and refresh token. A new OAuth2Client will need to be created.
 func (c *Client) LogOut() (err error) {
 	_, err = c.Post("/oauth2/logout", nil)
 	return
 }
 
+// ParseResponse attempts to decode the HTTP response body into the provided structure.
 func ParseResponse(resp *http.Response, errIn error, v any) (err error) {
 	err = errIn
 
@@ -185,12 +213,14 @@ func ParseResponse(resp *http.Response, errIn error, v any) (err error) {
 	return
 }
 
+// Pot represents data about the currently authenticated user provided by the Monzo API.
 type Whoami struct {
 	Authenticated bool   `json:"authenticated"`
 	ClientID      string `json:"client_id"`
 	UserID        string `json:"user_id"`
 }
 
+// Returns information about the current access token.
 func (c *Client) Whoami() (who *Whoami, err error) {
 	who = &Whoami{}
 	resp, err := c.Get("/ping/whoami", nil)
@@ -198,6 +228,7 @@ func (c *Client) Whoami() (who *Whoami, err error) {
 	return
 }
 
+// Returns the OAuth2 token being currently used.
 func (c *Client) Token() (*oauth2.Token, error) {
 	switch t := c.client.Transport.(type) {
 	case *oauth2.Transport:
@@ -207,6 +238,8 @@ func (c *Client) Token() (*oauth2.Token, error) {
 	return nil, errors.New("could not access token from transport")
 }
 
+// RefreshToken updates the expiry time on the OAuth2 token to be in the past, and then calls Whoami to
+// force the OAuth2 transport to refresh the token.
 func (c *Client) RefreshToken() (err error) {
 	err = c.RefreshTokenOnNextRequest()
 	if err != nil {
@@ -218,6 +251,8 @@ func (c *Client) RefreshToken() (err error) {
 	return
 }
 
+// RefreshTokenOnNextRequest updates the expiry time on the OAuth2 token to be in the past, so that the next API call will
+// force the OAuth2 transport to refresh the token.
 func (c *Client) RefreshTokenOnNextRequest() (err error) {
 	token, err := c.Token()
 	if err != nil {

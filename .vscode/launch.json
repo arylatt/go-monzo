@@ -93,6 +93,13 @@
       "program": "${workspaceFolder}/cmd/monzo",
       "args": [ "transactions", "annotate", "${input:transactionID}", "hello=world", "complex=aren't I?" ],
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Webhook Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/webhook-server"
     }
   ],
   "inputs": [
