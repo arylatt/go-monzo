@@ -1,0 +1,4 @@
+---
+builds:
+  - main: "./cmd/monzo"
+  - main: "./cmd/webhook-server"
