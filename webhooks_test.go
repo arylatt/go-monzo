@@ -1,6 +1,7 @@
 package monzo
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -10,30 +11,25 @@ import (
 )
 
 func TestWebhooksRegister(t *testing.T) {
-	type inputs struct {
-		accountID string
-		url       string
-	}
-
 	type expected struct {
 		webhook *WebhookSingle
 		err     error
 	}
 
 	tests := []struct {
-		inputs   inputs
+		inputs   map[string]interface{}
 		expected expected
 	}{
 		{
-			inputs:   inputs{"", ""},
+			inputs:   map[string]interface{}{"account_id": "", "url": ""},
 			expected: expected{nil, ErrWebhookInvalidAccountID},
 		},
 		{
-			inputs:   inputs{"1", ""},
+			inputs:   map[string]interface{}{"account_id": "1", "url": ""},
 			expected: expected{nil, ErrWebhookInvalidURL},
 		},
 		{
-			inputs: inputs{"1", "1"},
+			inputs: map[string]interface{}{"account_id": "1", "url": "1"},
 			expected: expected{&WebhookSingle{
 				Webhook: Webhook{
 					AccountID: "1",
@@ -50,14 +46,15 @@ func TestWebhooksRegister(t *testing.T) {
 
 			assert.Equal(t, "/webhooks", req.URL.Path)
 
-			req.ParseForm()
-			assert.Equal(t, test.inputs.accountID, req.Form.Get("account_id"))
-			assert.Equal(t, test.inputs.url, req.Form.Get("url"))
+			params := map[string]interface{}{}
+
+			assert.NoError(t, json.NewDecoder(req.Body).Decode(&params))
+			assert.Equal(t, test.inputs, params)
 		})
 
 		test.expected.webhook.setClient(c)
 
-		webhook, err := c.Webhooks.Register(test.inputs.accountID, test.inputs.url)
+		webhook, err := c.Webhooks.Register(test.inputs["account_id"].(string), test.inputs["url"].(string))
 
 		assert.Equal(t, test.expected.webhook, webhook)
 		assert.Equal(t, test.expected.err, err)

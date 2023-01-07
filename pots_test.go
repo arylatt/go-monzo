@@ -1,9 +1,9 @@
 package monzo
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,10 +41,8 @@ func TestPotsList(t *testing.T) {
 
 func TestPotDeposit(t *testing.T) {
 	type inputs struct {
-		potID           string
-		sourceAccountID string
-		amount          int64
-		dedupeID        string
+		potID  string
+		values map[string]interface{}
 	}
 
 	type expected struct {
@@ -57,23 +55,23 @@ func TestPotDeposit(t *testing.T) {
 		expected expected
 	}{
 		{
-			inputs:   inputs{"", "", 0, ""},
+			inputs:   inputs{"", map[string]interface{}{"source_account_id": "", "amount": float64(0), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidID},
 		},
 		{
-			inputs:   inputs{"1234", "", 0, ""},
+			inputs:   inputs{"1234", map[string]interface{}{"source_account_id": "", "amount": float64(0), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidSourceAccountID},
 		},
 		{
-			inputs:   inputs{"1234", "5678", 0, ""},
+			inputs:   inputs{"1234", map[string]interface{}{"source_account_id": "5678", "amount": float64(0), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidDepositAmount},
 		},
 		{
-			inputs:   inputs{"1234", "5678", 23, ""},
+			inputs:   inputs{"1234", map[string]interface{}{"source_account_id": "5678", "amount": float64(23), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidDedupeID},
 		},
 		{
-			inputs:   inputs{"1234", "5678", 23, "a"},
+			inputs:   inputs{"1234", map[string]interface{}{"source_account_id": "5678", "amount": float64(23), "dedupe_id": "a"}},
 			expected: expected{&Pot{Balance: 23}, nil},
 		},
 	}
@@ -84,13 +82,13 @@ func TestPotDeposit(t *testing.T) {
 
 			assert.Equal(t, fmt.Sprintf("/pots/%s/deposit", test.inputs.potID), req.URL.Path)
 
-			req.ParseForm()
-			assert.Equal(t, test.inputs.sourceAccountID, req.Form.Get("source_account_id"))
-			assert.Equal(t, strconv.FormatInt(test.inputs.amount, 10), req.Form.Get("amount"))
-			assert.Equal(t, test.inputs.dedupeID, req.Form.Get("dedupe_id"))
+			params := &map[string]interface{}{}
+
+			assert.NoError(t, json.NewDecoder(req.Body).Decode(params))
+			assert.Equal(t, test.inputs.values, *params)
 		})
 
-		pot, err := c.Pots.Deposit(test.inputs.potID, test.inputs.sourceAccountID, test.inputs.amount, test.inputs.dedupeID)
+		pot, err := c.Pots.Deposit(test.inputs.potID, test.inputs.values["source_account_id"].(string), int(test.inputs.values["amount"].(float64)), test.inputs.values["dedupe_id"].(string))
 
 		assert.Equal(t, test.expected.pot, pot)
 		assert.Equal(t, test.expected.err, err)
@@ -99,10 +97,8 @@ func TestPotDeposit(t *testing.T) {
 
 func TestPotWithdraw(t *testing.T) {
 	type inputs struct {
-		potID                string
-		destinationAccountID string
-		amount               int64
-		dedupeID             string
+		potID  string
+		values map[string]interface{}
 	}
 
 	type expected struct {
@@ -115,23 +111,23 @@ func TestPotWithdraw(t *testing.T) {
 		expected expected
 	}{
 		{
-			inputs:   inputs{"", "", 0, ""},
+			inputs:   inputs{"", map[string]interface{}{"destination_account_id": "", "amount": float64(0), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidID},
 		},
 		{
-			inputs:   inputs{"1234", "", 0, ""},
+			inputs:   inputs{"1234", map[string]interface{}{"destination_account_id": "", "amount": float64(0), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidSourceAccountID},
 		},
 		{
-			inputs:   inputs{"1234", "5678", 0, ""},
+			inputs:   inputs{"1234", map[string]interface{}{"destination_account_id": "5678", "amount": float64(0), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidWithdrawAmount},
 		},
 		{
-			inputs:   inputs{"1234", "5678", 23, ""},
+			inputs:   inputs{"1234", map[string]interface{}{"destination_account_id": "5678", "amount": float64(23), "dedupe_id": ""}},
 			expected: expected{nil, ErrPotInvalidDedupeID},
 		},
 		{
-			inputs:   inputs{"1234", "5678", 23, "a"},
+			inputs:   inputs{"1234", map[string]interface{}{"destination_account_id": "5678", "amount": float64(23), "dedupe_id": "a"}},
 			expected: expected{&Pot{Balance: 0}, nil},
 		},
 	}
@@ -142,13 +138,13 @@ func TestPotWithdraw(t *testing.T) {
 
 			assert.Equal(t, fmt.Sprintf("/pots/%s/withdraw", test.inputs.potID), req.URL.Path)
 
-			req.ParseForm()
-			assert.Equal(t, test.inputs.destinationAccountID, req.Form.Get("destination_account_id"))
-			assert.Equal(t, strconv.FormatInt(test.inputs.amount, 10), req.Form.Get("amount"))
-			assert.Equal(t, test.inputs.dedupeID, req.Form.Get("dedupe_id"))
+			params := &map[string]interface{}{}
+
+			assert.NoError(t, json.NewDecoder(req.Body).Decode(params))
+			assert.Equal(t, test.inputs.values, *params)
 		})
 
-		pot, err := c.Pots.Withdraw(test.inputs.potID, test.inputs.destinationAccountID, test.inputs.amount, test.inputs.dedupeID)
+		pot, err := c.Pots.Withdraw(test.inputs.potID, test.inputs.values["destination_account_id"].(string), int(test.inputs.values["amount"].(float64)), test.inputs.values["dedupe_id"].(string))
 
 		assert.Equal(t, test.expected.pot, pot)
 		assert.Equal(t, test.expected.err, err)

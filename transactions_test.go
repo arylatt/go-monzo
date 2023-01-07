@@ -1,6 +1,7 @@
 package monzo
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -191,9 +192,10 @@ func TestTransactionsAnnotate(t *testing.T) {
 	c := MockRequest(payload, func(args mock.Arguments) {
 		req := args.Get(0).(*http.Request)
 
-		req.ParseForm()
+		params := map[string]interface{}{}
 
-		assert.Equal(t, expected.Transaction.Metadata["foo"], req.Form.Get("metadata[foo]"))
+		assert.NoError(t, json.NewDecoder(req.Body).Decode(&params))
+		assert.Equal(t, expected.Transaction.Metadata["foo"], params["metadata"].(map[string]interface{})["foo"].(string))
 		assert.Equal(t, fmt.Sprintf("/transactions/%s", expected.Transaction.ID), req.URL.Path)
 	})
 

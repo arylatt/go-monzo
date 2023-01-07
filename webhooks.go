@@ -84,9 +84,9 @@ func (s *WebhooksService) Register(accountID, webhookURL string) (w *WebhookSing
 		return nil, ErrWebhookInvalidURL
 	}
 
-	params := url.Values{
-		"account_id": []string{accountID},
-		"url":        []string{webhookURL},
+	params := map[string]string{
+		"account_id": accountID,
+		"url":        webhookURL,
 	}
 
 	resp, err := s.client.Post("/webhooks", params)

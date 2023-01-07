@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strconv"
 )
 
 // A pot is a place to keep some money separate from the main spending account.
@@ -100,7 +99,7 @@ func (s *PotsService) Get(potID string) (pot *Pot, err error) {
 }
 
 // Move money from an account owned by the currently authorised user into one of their pots.
-func (s *PotsService) Deposit(potID, sourceAccountID string, amount int64, dedupeID string) (pot *Pot, err error) {
+func (s *PotsService) Deposit(potID, sourceAccountID string, amount int, dedupeID string) (pot *Pot, err error) {
 	pot = &Pot{}
 
 	if potID == "" {
@@ -121,10 +120,10 @@ func (s *PotsService) Deposit(potID, sourceAccountID string, amount int64, dedup
 
 	u := fmt.Sprintf("/pots/%s/deposit", potID)
 
-	params := url.Values{
-		"source_account_id": []string{sourceAccountID},
-		"amount":            []string{strconv.FormatInt(amount, 10)},
-		"dedupe_id":         []string{dedupeID},
+	params := map[string]interface{}{
+		"source_account_id": sourceAccountID,
+		"amount":            amount,
+		"dedupe_id":         dedupeID,
 	}
 
 	resp, err := s.client.Put(u, params)
@@ -135,7 +134,7 @@ func (s *PotsService) Deposit(potID, sourceAccountID string, amount int64, dedup
 // Move money from an account owned by the currently authorised user into one of their pots.
 //
 // Pot.Deposit is a convenience method. It is the same as calling Pots.Deposit(pot.ID, sourceAccountID, amount, dedupeID).
-func (p Pot) Deposit(sourceAccountID string, amount int64, dedupeID string) (*Pot, error) {
+func (p Pot) Deposit(sourceAccountID string, amount int, dedupeID string) (*Pot, error) {
 	if p.client == nil {
 		return nil, ErrPotClientNil
 	}
@@ -144,7 +143,7 @@ func (p Pot) Deposit(sourceAccountID string, amount int64, dedupeID string) (*Po
 }
 
 // Move money from a pot owned by the currently authorised user into one of their accounts.
-func (s *PotsService) Withdraw(potID, destinationAccountID string, amount int64, dedupeID string) (pot *Pot, err error) {
+func (s *PotsService) Withdraw(potID, destinationAccountID string, amount int, dedupeID string) (pot *Pot, err error) {
 	pot = &Pot{}
 
 	if potID == "" {
@@ -165,10 +164,10 @@ func (s *PotsService) Withdraw(potID, destinationAccountID string, amount int64,
 
 	u := fmt.Sprintf("/pots/%s/withdraw", potID)
 
-	params := url.Values{
-		"destination_account_id": []string{destinationAccountID},
-		"amount":                 []string{strconv.FormatInt(amount, 10)},
-		"dedupe_id":              []string{dedupeID},
+	params := map[string]interface{}{
+		"destination_account_id": destinationAccountID,
+		"amount":                 amount,
+		"dedupe_id":              dedupeID,
 	}
 
 	resp, err := s.client.Put(u, params)
@@ -179,7 +178,7 @@ func (s *PotsService) Withdraw(potID, destinationAccountID string, amount int64,
 // Move money from a pot owned by the currently authorised user into one of their accounts.
 //
 // Pot.Withdraw is a convenience method. It is the same as calling Pots.Withdraw(pot.ID, destinationAccountID, amount, dedupeID).
-func (p Pot) Withdraw(destinationAccountID string, amount int64, dedupeID string) (*Pot, error) {
+func (p Pot) Withdraw(destinationAccountID string, amount int, dedupeID string) (*Pot, error) {
 	if p.client == nil {
 		return nil, ErrPotClientNil
 	}

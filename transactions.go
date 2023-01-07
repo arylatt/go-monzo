@@ -254,11 +254,10 @@ func (s *TransactionsService) Get(transactionID string, expandMerchant bool) (tx
 // Note: the Monzo API does not seem to be respecting these requests.
 func (s *TransactionsService) Annotate(transactionID string, metadata map[string]string) (tx *TransactionSingle, err error) {
 	u := fmt.Sprintf("/transactions/%s", transactionID)
-	body := url.Values{}
 	out := &transactionStringMerchantSingle{}
 
-	for k, v := range metadata {
-		body.Add(fmt.Sprintf("metadata[%s]", k), v)
+	body := map[string]interface{}{
+		"metadata": metadata,
 	}
 
 	resp, err := s.client.Patch(u, body)
