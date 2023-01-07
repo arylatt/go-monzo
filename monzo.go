@@ -15,11 +15,8 @@ import (
 )
 
 const (
-	// Version is the SemVer of the Monzo API client.
-	Version = "dev"
-
 	// DefaultUserAgent is the user-agent string that will be sent to the server, unless it is overridden on the Client.
-	DefaultUserAgent = "go-monzo/" + Version + " (https://github.com/arylatt/go-monzo)"
+	DefaultUserAgent = "go-monzo/1.0 (https://github.com/arylatt/go-monzo)"
 
 	// BaseURL is the default Monzo API URL.
 	BaseURL = "https://api.monzo.com"

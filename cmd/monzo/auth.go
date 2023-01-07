@@ -167,7 +167,7 @@ func LoginOAuth2(ctx context.Context, clientID, clientSecret string) (t *Token, 
 	if err == http.ErrServerClosed {
 		err = <-errChan
 	} else {
-		err = fmt.Errorf("%w, %w", err, <-errChan)
+		err = fmt.Errorf("%s + %s", err.Error(), (<-errChan).Error())
 	}
 
 	return

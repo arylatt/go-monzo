@@ -13,18 +13,19 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	Version = "dev"
+var (
+	_client *monzo.Client
+
+	root = &cobra.Command{
+		Use:                "monzo",
+		Short:              "CLI for interacting with Monzo APIs",
+		PersistentPreRunE:  rootPersistentPreRunE,
+		PersistentPostRunE: rootPersistentPostRunE,
+	}
+
+	version   = "dev"
+	userAgent = "monzo-cli/" + version
 )
-
-var _client *monzo.Client
-
-var root = &cobra.Command{
-	Use:                "monzo",
-	Short:              "CLI for interacting with Monzo APIs",
-	PersistentPreRunE:  rootPersistentPreRunE,
-	PersistentPostRunE: rootPersistentPostRunE,
-}
 
 func init() {
 	viper.SetEnvPrefix("MONZO")
@@ -81,7 +82,7 @@ func rootPersistentPostRunE(cmd *cobra.Command, args []string) (err error) {
 	return token.Save()
 }
 
-func BuildClient(ctx context.Context, token *Token) *monzo.Client {
+func BuildClient(ctx context.Context, token *Token) (c *monzo.Client) {
 	var ts oauth2.TokenSource
 
 	if token.RefreshToken == "" {
@@ -96,5 +97,9 @@ func BuildClient(ctx context.Context, token *Token) *monzo.Client {
 		ts = config.TokenSource(ctx, token.Token)
 	}
 
-	return monzo.New(oauth2.NewClient(ctx, ts))
+	c = monzo.New(oauth2.NewClient(ctx, ts))
+
+	c.UserAgent = fmt.Sprintf("%s, %s", userAgent, monzo.DefaultUserAgent)
+
+	return
 }

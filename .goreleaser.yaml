@@ -1,0 +1,5 @@
+---
+builds:
+  - main: "./cmd/monzo"
+    id: cli
+    binary: monzo

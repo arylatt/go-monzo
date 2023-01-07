@@ -1,0 +1,59 @@
+---
+name: Build and Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout
+      - name: Checkout Source
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # GitVersion
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.7
+        with:
+          versionSpec: "5.x"
+      - name: Run GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.9.7
+        with:
+          useConfigFile: true
+
+      # Go Test
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.2"
+
+      - name: Go Test
+        run: "go test -v -cover ./..."
+
+      # Tag Commit
+      - name: Tag Commit
+        uses: anothrNick/github-tag-action@1.61.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: "v${{ steps.gitversion.outputs.semVer }}"
+        if: ${{ github.ref == 'refs/heads/main' }}
+
+      # Go Release
+      - name: Fetch Tags
+        run: git fetch --force --tags
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.ref == 'refs/heads/main' }}
