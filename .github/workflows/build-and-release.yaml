@@ -8,7 +8,8 @@ on:
       - main
 
 jobs:
-  build-and-release:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       # Checkout
@@ -36,18 +37,35 @@ jobs:
 
       - name: Go Test
         run: "go test -v -cover ./..."
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semVer }}
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: build
+    steps:
+      # Checkout
+      - name: Checkout Source
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       # Tag Commit
       - name: Tag Commit
         uses: anothrNick/github-tag-action@1.61.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CUSTOM_TAG: "v${{ steps.gitversion.outputs.semVer }}"
-        if: ${{ github.ref == 'refs/heads/main' }}
-
-      # Go Release
+          CUSTOM_TAG: "v${{ needs.build.outputs.semver }}"
       - name: Fetch Tags
         run: git fetch --force --tags
+
+      # Go Release
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.2"
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
@@ -56,4 +74,3 @@ jobs:
           args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ github.ref == 'refs/heads/main' }}

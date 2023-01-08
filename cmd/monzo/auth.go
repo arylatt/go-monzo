@@ -238,5 +238,11 @@ func refreshTokenRunE(cmd *cobra.Command, args []string) (err error) {
 }
 
 func logoutRunE(cmd *cobra.Command, args []string) error {
+	token := &Token{}
+	if err := LoadCache(CacheFileToken, token); err == nil {
+		_client = BuildClient(cmd.Context(), token)
+		_client.LogOut()
+	}
+
 	return os.RemoveAll(viper.GetString("home-dir"))
 }

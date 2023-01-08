@@ -9,6 +9,7 @@ import (
 
 	"github.com/arylatt/go-monzo"
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
@@ -23,6 +24,13 @@ var (
 		PersistentPostRunE: rootPersistentPostRunE,
 	}
 
+	genDocs = &cobra.Command{
+		Use:   "generate-docs [docs-dir]",
+		Short: "Generate Markdown docs for CLI",
+		RunE:  genDocsRunE,
+		Args:  cobra.MaximumNArgs(1),
+	}
+
 	version   = "dev"
 	userAgent = "monzo-cli/" + version
 )
@@ -31,6 +39,8 @@ func init() {
 	viper.SetEnvPrefix("MONZO")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
+
+	root.AddCommand(genDocs)
 }
 
 func main() {
@@ -47,7 +57,7 @@ func rootPersistentPreRunE(cmd *cobra.Command, args []string) (err error) {
 
 	viper.SetDefault("home-dir", path.Join(userHome, "/.monzo/"))
 
-	if err = os.MkdirAll(viper.GetString("home-dir"), os.ModeDir); err != nil {
+	if err = os.MkdirAll(viper.GetString("home-dir"), os.ModeDir|0600); err != nil {
 		return
 	}
 
@@ -80,6 +90,20 @@ func rootPersistentPostRunE(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	return token.Save()
+}
+
+func genDocsRunE(cmd *cobra.Command, args []string) (err error) {
+	dirName := "docs/"
+	if len(args) > 0 {
+		dirName = args[0]
+	}
+
+	err = os.MkdirAll(dirName, os.ModeDir)
+	if err != nil {
+		return
+	}
+
+	return doc.GenMarkdownTree(root, dirName)
 }
 
 func BuildClient(ctx context.Context, token *Token) (c *monzo.Client) {
